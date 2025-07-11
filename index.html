@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Task Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    input, textarea, select, button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .due-soon {
+      background-color: #fff3cd;
+    }
+    .overdue {
+      background-color: #f8d7da;
+    }
+    .completed {
+      background-color: #d4edda;
+    }
+  </style>
+</head>
+<body>
+  <h2>Task Tracker</h2>
+
+  <form id="taskForm">
+    <input type="text" id="assignee" placeholder="Assignee" required>
+    <input type="text" id="title" placeholder="Task Title" required>
+    <textarea id="taskDetails" placeholder="Task Details" rows="3" required></textarea>
+    <select id="priority" required>
+      <option value="">Select Priority</option>
+      <option>High</option>
+      <option>Medium</option>
+      <option>Low</option>
+    </select>
+    <input type="date" id="dueDate" required>
+    <select id="status" required>
+      <option value="">Select Status</option>
+      <option>Pending</option>
+      <option>In Progress</option>
+      <option>Completed</option>
+    </select>
+    <button type="submit">Add Task</button>
+  </form>
+
+  <table id="taskTable">
+    <thead>
+      <tr>
+        <th>Assignee</th>
+        <th>Title</th>
+        <th>Details</th>
+        <th>Priority</th>
+        <th>Due Date</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const API_URL = 'YOUR_DEPLOYED_SCRIPT_URL'; // Replace this with your Web App URL
+
+    document.getElementById("taskForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const task = {
+        taskId: Date.now(),
+        assignee: document.getElementById("assignee").value,
+        title: document.getElementById("title").value,
+        taskDetails: document.getElementById("taskDetails").value,
+        priority: document.getElementById("priority").value,
+        dueDate: document.getElementById("dueDate").value,
+        status: document.getElementById("status").value
+      };
+
+      fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(task),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(() => {
+        alert("Task added!");
+        document.getElementById("taskForm").reset();
+        loadTasks();
+      })
+      .catch(err => {
+        console.error("Error adding task:", err);
+        alert("Something went wrong. Check your connection or script URL.");
+      });
+    });
+
+    function loadTasks() {
+      fetch(API_URL + '?action=getTasks')
+        .then(response => response.json())
+        .then(tasks => {
+          const tbody = document.querySelector("#taskTable tbody");
+          tbody.innerHTML = "";
+
+          const today = new Date();
+          tasks.forEach(task => {
+            const dueDate = new Date(task.dueDate);
+            const timeDiff = (dueDate - today) / (1000 * 60 * 60 * 24);
+
+            const row = document.createElement("tr");
+
+            if (task.status === "Completed") {
+              row.classList.add("completed");
+            } else if (timeDiff < 0) {
+              row.classList.add("overdue");
+            } else if (timeDiff <= 2) {
+              row.classList.add("due-soon");
+            }
+
+            row.innerHTML = `
+              <td>${task.assignee}</td>
+              <td>${task.title}</td>
+              <td>${task.taskDetails}</td>
+              <td>${task.priority}</td>
+              <td>${task.dueDate}</td>
+              <td>${task.status}</td>
+            `;
+
+            tbody.appendChild(row);
+          });
+        })
+        .catch(err => {
+          console.error("Error loading tasks:", err);
+        });
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
